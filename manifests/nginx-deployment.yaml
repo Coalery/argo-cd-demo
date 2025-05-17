@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: ghcr.io/coalery/argo-cd-demo:{{}}
+          image: ghcr.io/coalery/argo-cd-demo:6e5acd74-f3df-45c1-b757-57cf52fc8d9b
           ports:
             - containerPort: 80
 ---
