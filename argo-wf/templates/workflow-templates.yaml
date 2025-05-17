@@ -13,6 +13,10 @@ metadata:
 spec:
   entrypoint: ci-pipeline
   serviceAccountName: argo-admin
+  arguments:
+    parameters:
+      - name: image-tag
+        value: "ghcr.io/coalery/argo-cd-demo:{{`{{ workflow.uid }}`}}"
 
   templates:
     - name: ci-pipeline
@@ -20,9 +24,12 @@ spec:
         tasks:
           - name: clone-repo
             template: git-clone
+          - name: login-docker
+            template: docker-login
+            dependencies: [clone-repo]
           - name: build-image
             template: docker-build
-            dependencies: [clone-repo]
+            dependencies: [login-docker]
           - name: update-manifest
             template: update-manifest
             dependencies: [build-image]
@@ -38,9 +45,9 @@ spec:
           - name: workdir
             mountPath: /workspace
 
-    - name: docker-build
+    - name: docker-login
       container:
-        image: docker:20.10.12-dind
+        image: docker:20.10.12
         env:
           - name: GH_TOKEN
             valueFrom:
@@ -50,25 +57,27 @@ spec:
         command: [sh, -c]
         args:
           - |
-            cd /workspace
-
-            UID=$(echo {{`{{ workflow.uid }}`}})
-            echo $GH_TOKEN | docker login -u Coalery --password-stdin
-            docker build -t demo-app .
-            docker tag demo-app ghcr.io/coalery/argo-cd-demo:${UID}
-            docker push ghcr.io/coalery/argo-cd-demo:${UID}
-
-            # 다음 단계에서 이미지 태그를 사용하기 위해 별도 파일에 저장
-            echo "ghcr.io/coalery/argo-cd-demo:${UID}" > /workspace/image-tag.txt
+            echo $GH_TOKEN | docker login ghcr.io -u coalery --password-stdin
+            mkdir -p /kaniko/.docker
+            cp ~/.docker/config.json /kaniko/.docker/config.json
         volumeMounts:
           - name: workdir
             mountPath: /workspace
-          - name: docker-sock
-            mountPath: /var/run/docker.sock
-      volumes:
-        - name: docker-sock
-          hostPath:
-            path: /var/run/docker.sock
+          - name: kaniko-secret
+            mountPath: /kaniko/.docker
+
+    - name: docker-build
+      container:
+        image: gcr.io/kaniko-project/executor:v1.23.2
+        args:
+          - --dockerfile=/workspace/Dockerfile
+          - --context=dir:///workspace
+          - --destination={{`{{ workflow.parameters.image-tag }}`}}
+        volumeMounts:
+          - name: workdir
+            mountPath: /workspace
+          - name: kaniko-secret
+            mountPath: /kaniko/.docker
 
     - name: update-manifest
       container:
@@ -83,7 +92,7 @@ spec:
         args:
           - |
             cd /workspace
-            IMAGE_TAG=$(cat image-tag.txt)
+            IMAGE_TAG={{`{{ workflow.parameters.image-tag }}`}}
             # 이미지 태그를 매니페스트에 업데이트
             sed -i "s|image:.*|image: $IMAGE_TAG|g" manifests/nginx-deployment.yaml
 
@@ -95,7 +104,7 @@ spec:
         volumeMounts:
           - name: workdir
             mountPath: /workspace
-
+  
   volumeClaimTemplates:
     - metadata:
         name: workdir
@@ -103,4 +112,11 @@ spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 1Gi
+            storage: 0.5Gi
+    - metadata:
+        name: kaniko-secret
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Mi
