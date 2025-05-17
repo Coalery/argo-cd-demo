@@ -4,7 +4,7 @@ metadata:
   name: github-token
 type: Opaque
 data:
-  token: {{ .Values.token }}
+  token: {{ .Values.token | b64enc }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
