@@ -54,11 +54,11 @@ spec:
 
             echo $GH_TOKEN | docker login -u Coalery --password-stdin
             docker build -t demo-app .
-            docker tag demo-app ghcr.io/Coalery/argo-cd-demo:{{workflow.uid}}
-            docker push ghcr.io/Coalery/argo-cd-demo:{{workflow.uid}}
+            docker tag demo-app ghcr.io/Coalery/argo-cd-demo:\{\{workflow.uid\}\}
+            docker push ghcr.io/Coalery/argo-cd-demo:\{\{workflow.uid\}\}
 
             # 다음 단계에서 이미지 태그를 사용하기 위해 별도 파일에 저장
-            echo "ghcr.io/Coalery/argo-cd-demo:{{workflow.uid}}" > /workspace/image-tag.txt
+            echo "ghcr.io/Coalery/argo-cd-demo:\{\{workflow.uid\}\}" > /workspace/image-tag.txt
         volumeMounts:
           - name: workdir
             mountPath: /workspace
