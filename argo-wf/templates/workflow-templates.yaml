@@ -7,7 +7,7 @@ data:
   token: {{ .Values.token }}
 ---
 apiVersion: argoproj.io/v1alpha1
-kind: Workflow
+kind: WorkflowTemplate
 metadata:
   generateName: demo-app-build-
 spec:
