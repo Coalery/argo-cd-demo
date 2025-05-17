@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-token
+type: Opaque
+data:
+  token: {{ .Values.token }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: demo-app-build-
+spec:
+  entrypoint: ci-pipeline
+  serviceAccountName: argo-admin
+
+  templates:
+    - name: ci-pipeline
+      dag:
+        tasks:
+          - name: clone-repo
+            template: git-clone
+          - name: build-image
+            template: docker-build
+            dependencies: [clone-repo]
+          - name: update-manifest
+            template: update-manifest
+            dependencies: [build-image]
+
+    - name: git-clone
+      container:
+        image: alpine/git:latest
+        command: [sh, -c]
+        args:
+          - |
+            git clone https://github.com/Coalery/argo-cd-demo.git /workspace
+        volumeMounts:
+          - name: workdir
+            mountPath: /workspace
+
+    - name: docker-build
+      container:
+        image: docker:20.10.12-dind
+        env:
+          - name: GH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: github-token
+                key: token
+        command: [sh, -c]
+        args:
+          - |
+            cd /workspace
+
+            echo $GH_TOKEN | docker login -u Coalery --password-stdin
+            docker build -t demo-app .
+            docker tag demo-app ghcr.io/Coalery/argo-cd-demo:{{workflow.uid}}
+            docker push ghcr.io/Coalery/argo-cd-demo:{{workflow.uid}}
+
+            # 다음 단계에서 이미지 태그를 사용하기 위해 별도 파일에 저장
+            echo "ghcr.io/Coalery/argo-cd-demo:{{workflow.uid}}" > /workspace/image-tag.txt
+        volumeMounts:
+          - name: workdir
+            mountPath: /workspace
+
+    - name: update-manifest
+      container:
+        image: bitnami/git:latest
+        env:
+          - name: GH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: github-token
+                key: token
+        command: [sh, -c]
+        args:
+          - |
+            cd /workspace
+            IMAGE_TAG=$(cat image-tag.txt)
+            # 이미지 태그를 매니페스트에 업데이트
+            sed -i "s|image:.*|image: $IMAGE_TAG|g" manifests/nginx-deployment.yaml
+
+            git config --global user.email "doralife12@gmail.com"
+            git config --global user.name "argo-wf ci"
+            git add manifests/nginx-deployment.yaml
+            git commit -m "chore: update image to $IMAGE_TAG"
+            git push https://$GH_TOKEN@github.com/Coalery/argo-cd-demo.git
+        volumeMounts:
+          - name: workdir
+            mountPath: /workspace
+
+  volumeClaimTemplates:
+    - metadata:
+        name: workdir
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
