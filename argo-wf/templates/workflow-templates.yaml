@@ -9,7 +9,7 @@ data:
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  generateName: demo-app-build-
+  name: argo-wf-demo-templates
 spec:
   entrypoint: ci-pipeline
   serviceAccountName: argo-admin
