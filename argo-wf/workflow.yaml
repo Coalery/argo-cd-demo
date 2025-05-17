@@ -15,12 +15,9 @@ spec:
       - name: build-image
         template: docker-build
         dependencies: [clone-repo]
-      - name: push-image
-        template: docker-push
-        dependencies: [build-image]
       - name: update-manifest
         template: update-manifest
-        dependencies: [push-image]
+        dependencies: [build-image]
   
   - name: git-clone
     container:
