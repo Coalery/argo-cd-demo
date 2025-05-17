@@ -4,7 +4,7 @@ metadata:
   generateName: demo-app-build-
 spec:
   entrypoint: ci-pipeline
-  serviceAccountName: argo-workflow
+  serviceAccountName: argo-admin
   
   templates:
   - name: ci-pipeline
