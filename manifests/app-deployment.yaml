@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: express-app
-          image: ghcr.io/coalery/argo-cd-demo:505dee25-3bf9-4121-bdbb-6b98e5251b90
+          image: ghcr.io/coalery/argo-cd-demo:c02b84c2-8927-4adb-b17e-4b14b726f3e9
           ports:
             - containerPort: 3000
           resources:
