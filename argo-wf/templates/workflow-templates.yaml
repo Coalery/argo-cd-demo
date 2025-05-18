@@ -94,11 +94,11 @@ spec:
             cd /workspace
             IMAGE_TAG={{`{{ workflow.parameters.image-tag }}`}}
             # 이미지 태그를 매니페스트에 업데이트
-            sed -i "s|image:.*|image: $IMAGE_TAG|g" manifests/nginx-deployment.yaml
+            sed -i "s|image:.*|image: $IMAGE_TAG|g" manifests/app-deployment.yaml
 
             git config --global user.email "doralife12@gmail.com"
             git config --global user.name "argo-wf ci"
-            git add manifests/nginx-deployment.yaml
+            git add manifests/app-deployment.yaml
             git commit -m "chore: update image to $IMAGE_TAG"
             git push https://$GH_TOKEN@github.com/Coalery/argo-cd-demo.git
         volumeMounts:
