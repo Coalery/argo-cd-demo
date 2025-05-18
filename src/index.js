@@ -16,7 +16,7 @@ const httpRequestCounter = new promClient.Counter({
 });
 
 const httpRequestDuration = new promClient.Histogram({
-  name: "http_request_duration_seconds",
+  name: "http_request_duration_ms",
   help: "요청 처리 시간",
   labelNames: ["method", "path", "status"],
   buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10],
@@ -48,7 +48,7 @@ app.use((req, res, next) => {
     const status = res.statusCode;
 
     httpRequestCounter.inc({ method, path, status });
-    httpRequestDuration.observe({ method, path, status }, duration / 1000);
+    httpRequestDuration.observe({ method, path, status }, duration);
   });
 
   next();
