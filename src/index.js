@@ -70,6 +70,16 @@ app.get("/random", (req, res) => {
   });
 });
 
+app.get("/load", (req, res) => {
+  const duration = 100;
+  const end = Date.now() + duration;
+  while (Date.now() < end) {
+    // 무의미한 계산으로 CPU 사용
+    Math.sqrt(Math.random());
+  }
+  res.send(`CPU load completed for ${duration}ms`);
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
